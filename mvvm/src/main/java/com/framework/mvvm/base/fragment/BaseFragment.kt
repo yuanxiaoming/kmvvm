@@ -1,0 +1,131 @@
+package com.framework.mvvm.base.fragment
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.annotation.CallSuper
+import androidx.annotation.Nullable
+import androidx.annotation.StringRes
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.LifecycleCoroutineScope
+import androidx.lifecycle.lifecycleScope
+import androidx.viewbinding.ViewBinding
+import com.framework.mvvm.R
+import com.framework.mvvm.ksp.KotlinMvvmCompiler
+import com.framework.mvvm.base.activity.BaseActivity
+import com.framework.mvvm.base.view.BaseView
+import com.framework.mvvm.controller.LoadingViewController
+import com.framework.mvvm.databinding.ViewRootBinding
+import com.framework.utils.ext.showSnackBar
+import java.lang.reflect.ParameterizedType
+
+/**
+ * Fragment封装基类
+ * @date 2019/4/4 23:14
+ */
+open class BaseFragment<VB : ViewBinding> : Fragment(), BaseView {
+    protected val bodyBinding: VB by lazy {
+        val type = javaClass.genericSuperclass
+        val vbClass: Class<VB> = (type as ParameterizedType).actualTypeArguments[0] as Class<VB>
+        val method = vbClass.getDeclaredMethod("inflate", LayoutInflater::class.java)
+        method.invoke(this, layoutInflater) as VB
+    }
+
+    private val loadingViewController: LoadingViewController by lazy {
+        LoadingViewController(requireActivity(), rootBinding)
+    }
+
+    private lateinit var rootBinding: ViewRootBinding
+
+    private var failedBinding: ViewBinding? = null
+
+    fun getRootBanding(): ViewRootBinding {
+        return rootBinding
+    }
+
+    open fun rootBinding(block: ViewRootBinding.() -> Unit) {
+        rootBinding.run(block)
+    }
+
+    open fun bodyBinding(block: VB.() -> Unit) {
+        bodyBinding.run(block)
+    }
+
+    fun baseActivity(): BaseActivity<*>? {
+        if (activity is BaseActivity<*>) {
+            return activity as BaseActivity<*>
+        }
+        return null
+    }
+
+    inline fun <reified FVB : ViewBinding> failedBinding(block: FVB.() -> Unit) {
+        getFailedBinding()?.let {
+            (it as FVB).run(block)
+        }
+    }
+
+    override fun scope(): LifecycleCoroutineScope {
+        return lifecycleScope
+    }
+
+    override fun showFailedView() {
+        getFailedBinding()?.let {
+            rootBinding {
+                layoutBody.addView(it.root)
+            }
+        }
+    }
+
+    override fun removeFailedView() {
+        failedBinding?.let {
+            rootBinding.layoutBody.removeView(it.root)
+        }
+    }
+
+    override fun getFailedBinding(): ViewBinding? {
+        if (failedBinding == null) {
+            failedBinding = KotlinMvvmCompiler.globalConfig().getFailedBinding(layoutInflater, this)
+        }
+        return failedBinding
+    }
+
+    @CallSuper
+    @Nullable
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        rootBinding = ViewRootBinding.inflate(inflater, container, false)
+        rootBinding.layoutBody.addView(
+            bodyBinding.root,
+            0,
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        return rootBinding.root
+    }
+
+    override fun snackBar(text: CharSequence, gravity: Int) {
+        bodyBinding.root.showSnackBar(text, R.drawable.snackbar_bg, gravity)
+    }
+
+    override fun snackBar(@StringRes textRes: Int, gravity: Int) {
+        bodyBinding.root.showSnackBar(textRes, R.drawable.snackbar_bg, gravity)
+    }
+
+    override fun loadingView() {
+        loadingViewController.loadingView()
+    }
+
+    override fun loadingDialog() {
+        loadingViewController.loadingDialog()
+    }
+
+    override fun hideLoading() {
+        loadingViewController.hideLoading()
+    }
+}

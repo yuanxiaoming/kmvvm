@@ -1,0 +1,36 @@
+package com.framework.ksp.compiler.processor
+
+import com.framework.ksp.compiler.generator.ActivityGenerator
+import com.framework.ksp.compiler.generator.KotlinMvvmGenerator
+import com.framework.ksp.compiler.generator.PrefsGenerator
+import com.framework.ksp.compiler.generator.ServiceApiGenerator
+import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.processing.Resolver
+import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.symbol.KSAnnotated
+
+class KotlinMvvmProcessor(
+    codeGenerator: CodeGenerator,
+    private val logger: KSPLogger
+) : SymbolProcessor {
+    companion object {
+        private const val TAG = "KotlinMvvmProcessor"
+
+    }
+
+    private val serviceApiGenerator = ServiceApiGenerator(codeGenerator, logger)
+    private val prefsGenerator = PrefsGenerator(codeGenerator, logger)
+    private val kotlinMvvmGenerator = KotlinMvvmGenerator(codeGenerator, logger)
+    private val activityGenerator = ActivityGenerator(codeGenerator, logger)
+
+    override fun process(resolver: Resolver): List<KSAnnotated> {
+        kotlinMvvmGenerator.process(resolver)
+        serviceApiGenerator.process(resolver)
+        prefsGenerator.process(resolver)
+        activityGenerator.process(resolver)
+        return emptyList()
+    }
+
+
+}

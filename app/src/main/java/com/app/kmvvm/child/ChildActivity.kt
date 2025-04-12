@@ -1,0 +1,89 @@
+package com.app.kmvvm.child
+
+import android.view.View
+import com.framework.annotation.*
+import com.app.kmvvm.R
+import com.app.kmvvm.databinding.ActivityChildBinding
+import com.framework.mvvm.base.activity.BaseVMActivity
+import com.framework.mvvm.ext.lifecycleLoadingDialog
+import com.framework.mvvm.ext.lifecycleLoadingView
+
+@Title(R.string.child_title)
+class ChildActivity : BaseVMActivity<ActivityChildBinding, ChildViewModel>() {
+    @OnClickFirstDrawable(R.drawable.more)
+    fun clickFirstDrawable(v: View) {
+        snackBar("第一个图标按钮点击生效")
+        updateTitle("第一图标")
+    }
+
+    @OnClickFirstText(R.string.more)
+    fun clickFirstText() {
+        snackBar("第一个文字按钮点击生效")
+        updateTitle("第一文字")
+    }
+
+    @OnClickSecondDrawable(R.drawable.more)
+    fun clickSecondDrawable(v: View) {
+        snackBar("第二个图标按钮点击生效")
+        updateTitle("第二图标")
+    }
+
+    @OnClickSecondText(R.string.more)
+    fun clickSecondText() {
+        snackBar("第二个文字按钮点击生效")
+        updateTitle("第二文字")
+    }
+
+    override fun initParam() {
+
+    }
+
+    override fun initView() {
+        bodyBinding {
+            loadingDialogViewModel.setOnClickListener {
+                viewModel.loadingDialogViewModel()
+            }
+            loadingViewViewModel.setOnClickListener {
+                viewModel.loadingViewViewModel()
+            }
+            loadingViewErrorViewModel.setOnClickListener {
+                viewModel.loadingViewErrorViewModel()
+            }
+        }
+    }
+
+    override fun initFlow() {
+        onFailedReload(false) {
+            loadingViewError(bodyBinding.root)
+            viewModel.loadingViewErrorViewModel()
+        }
+    }
+
+    /**
+     * dialog形式的loading
+     */
+    fun loadingDialog(v: View) {
+        viewModel.loadingDialog().lifecycleLoadingDialog(this) {
+            snackBar(this)
+        }
+    }
+
+    fun loadingViewError(v: View) {
+        loadingViewError()
+    }
+
+    private fun loadingViewError() {
+        viewModel.loadingViewError().lifecycleLoadingView(this, showFailedView = true) {
+            snackBar(this)
+        }
+    }
+
+    /**
+     * 标题栏以下的loading
+     */
+    fun loadingView(v: View) {
+        viewModel.loadingView().lifecycleLoadingView(this) {
+            snackBar(this)
+        }
+    }
+}

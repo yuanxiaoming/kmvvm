@@ -1,0 +1,97 @@
+apply plugin: 'signing'
+apply plugin: 'maven-publish'
+
+def properties = new Properties()
+properties.load(rootProject.file("local.properties").newDataInputStream())
+def ossrhUsername = properties.getProperty("ossrhUsername")
+def ossrhPassword = properties.getProperty("ossrhPassword")
+
+if (project.plugins.hasPlugin("java-library")) {
+    tasks.register('javadocJar', Jar) {
+        from javadoc
+        archiveClassifier.convention("javadoc")
+        archiveClassifier.set("javadoc")
+    }
+    tasks.register('javaSourcesJar', Jar) {
+        from sourceSets.main.java.srcDirs
+        archiveClassifier.convention("sources")
+        archiveClassifier.set("sources")
+    }
+} else if (project.plugins.hasPlugin("com.android.library")) {
+    tasks.register('androidSourcesJar', Jar) {
+        from android.sourceSets.main.java.srcDirs
+//        classifier = 'sources'
+    }
+}
+
+def kmvvm_version = rootProject.kmvvmVersion
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                if (project.plugins.hasPlugin("com.android.library")) {
+                    from components.release
+                    artifact androidSourcesJar
+                } else if (project.plugins.hasPlugin("java-library")) {
+                    from components.java
+                    artifact javadocJar
+                    artifact javaSourcesJar
+                }
+                def projectName = project.name
+                groupId = 'io.github.catchpig.kmvvm'
+                artifactId = projectName
+                version = kmvvm_version
+
+                pom {
+                    name = 'kmvvm'
+                    description = 'kmvvm'
+                    url = 'https://github.com/catchpig/kmvvm'
+                    licenses {
+                        license {
+                            name = 'The Apache Software License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'zhuazhu'
+                            name = 'zhuazhu'
+                            email = '327785185@qq.com'
+                        }
+                    }
+                    scm {
+                        connection = 'https://github.com/catchpig/kmvvm'
+                        developerConnection = 'https://github.com/catchpig/kmvvm.git'
+                        url = 'https://github.com/catchpig/kmvvm'
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                name 'local'
+                url "${rootProject.buildDir}"
+            }
+            maven {
+                name 'mavenCentralSnapshot'
+                url 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+                credentials {
+                    username = ossrhUsername
+                    password = ossrhPassword
+                }
+            }
+            maven {
+                name 'mavenCentral'
+                url 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+                credentials {
+                    username = ossrhUsername
+                    password = ossrhPassword
+                }
+            }
+        }
+    }
+    signing {
+        sign publishing.publications.release
+    }
+}

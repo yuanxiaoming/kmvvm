@@ -1,0 +1,21 @@
+package com.framework.ksp.compiler.generator
+
+import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.processing.Resolver
+
+abstract class BaseGenerator(
+    open val codeGenerator: CodeGenerator,
+    private val logger: KSPLogger
+) {
+
+    abstract fun process(resolver: Resolver)
+
+    fun warning(tag: String, msg: String) {
+        logger.warn("$tag:$msg")
+    }
+
+    fun error(tag: String, msg: String) {
+        logger.error("$tag:$msg")
+    }
+}
